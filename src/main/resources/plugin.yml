@@ -22,6 +22,9 @@ commands:
   guess:
     description: Guess a player's role (Conspirator only)
     usage: /guess <player> <role>
+  ready:
+    description: Ready up in the lobby to start the game
+    usage: /ready
 
 permissions:
   imitatorgame.player:

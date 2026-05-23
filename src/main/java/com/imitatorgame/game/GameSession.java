@@ -31,6 +31,7 @@ public class GameSession {
     private final GameStateMachine stateMachine;
     private final Map<UUID, PlayerData> playerDataMap = new ConcurrentHashMap<>();
     private final Set<UUID> lobbyPlayers = new HashSet<>();
+    private final Set<UUID> readyPlayers = new HashSet<>();
     private final Set<UUID> alivePlayers = new HashSet<>();
     private final Set<UUID> deadPlayers = new HashSet<>();
     private final List<UUID> imitatorPlayers = new ArrayList<>();
@@ -273,6 +274,7 @@ public class GameSession {
         stateMachine.forcePhase(GamePhase.GAME_OVER);
         playerDataMap.clear();
         lobbyPlayers.clear();
+        readyPlayers.clear();
         alivePlayers.clear();
         deadPlayers.clear();
         imitatorPlayers.clear();
@@ -361,10 +363,28 @@ public class GameSession {
 
     public void removeLobbyPlayer(UUID uuid) {
         lobbyPlayers.remove(uuid);
+        readyPlayers.remove(uuid);
         if (!isActive()) {
             playerDataMap.remove(uuid);
         }
     }
+
+    public boolean setReady(UUID uuid) {
+        if (!lobbyPlayers.contains(uuid)) return false;
+        if (readyPlayers.contains(uuid)) return false;
+        if (isActive()) return false;
+        readyPlayers.add(uuid);
+
+        int minPlayers = plugin.getConfigManager().getGameConfig().minPlayers();
+        if (readyPlayers.size() >= minPlayers && lobbyPlayers.size() >= minPlayers) {
+            plugin.getLogger().info("Ready threshold reached: " + readyPlayers.size() + "/" + lobbyPlayers.size());
+            start();
+        }
+        return true;
+    }
+
+    public boolean isReady(UUID uuid) { return readyPlayers.contains(uuid); }
+    public int getReadyCount() { return readyPlayers.size(); }
 
     public boolean isInLobby(UUID uuid) { return lobbyPlayers.contains(uuid); }
     public boolean isAlive(UUID uuid) { return alivePlayers.contains(uuid); }

@@ -50,6 +50,7 @@ public class ImitatorGamePlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerMoveListener(this), this);
         getServer().getPluginManager().registerEvents(new ChatListener(this), this);
         getServer().getPluginManager().registerEvents(new DimensionGuardListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerRespawnListener(this), this);
     }
 
     private void registerCommands() {
@@ -63,6 +64,7 @@ public class ImitatorGamePlugin extends JavaPlugin {
         getCommand("report").setExecutor(reportCmd);
 
         getCommand("radio").setExecutor(new com.imitatorgame.command.RadioCommand(this));
+        getCommand("ready").setExecutor(new com.imitatorgame.command.ReadyCommand(this));
     }
 
     public ConfigManager getConfigManager() { return configManager; }
