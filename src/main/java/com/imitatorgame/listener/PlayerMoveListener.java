@@ -26,6 +26,8 @@ public class PlayerMoveListener implements Listener {
         GamePhase phase = session.getPhase();
         if (phase == GamePhase.MEETING_DISCUSSION || phase == GamePhase.MEETING_VOTING
                 || phase == GamePhase.MEETING_RESULT) {
+            // Only freeze alive players - dead spectators can move freely
+            if (!session.isAlive(player.getUniqueId())) return;
             Location from = event.getFrom();
             Location to = event.getTo();
             if (to != null && (from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ())) {

@@ -5,6 +5,7 @@ import com.imitatorgame.config.MapConfig;
 import com.imitatorgame.event.FloodingEvent;
 import com.imitatorgame.event.PowerOutageEvent;
 import com.imitatorgame.event.TimedEventManager;
+import com.imitatorgame.map.GameMapManager;
 import com.imitatorgame.meeting.MeetingManager;
 import com.imitatorgame.meeting.VotingManager;
 import com.imitatorgame.role.Role;
@@ -17,7 +18,11 @@ import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -42,8 +47,11 @@ public class GameSession {
     private ScoreboardManager scoreboardManager;
     private TimedEventManager eventManager;
     private DeathManager deathManager;
+    private GameMapManager gameMapManager;
     private BukkitTask currentTimer;
     private BukkitTask scoreboardTask;
+    private BukkitTask invisibleHandsTask;
+    private BukkitTask bombTickTask;
     private int countdownSeconds;
 
     private int totalTasksCompleted = 0;
@@ -125,6 +133,13 @@ public class GameSession {
                 imitatorPlayers.add(entry.getKey());
             }
 
+            // Set cooldowns from role config
+            pd.setAbilityCooldownMillis(pd.getRole().getCooldownMillis());
+            int globalUses = pd.getRole().getGlobalUses();
+            pd.setGlobalUsesRemaining(globalUses);
+            pd.setAbilityUsesRemaining(globalUses);
+            pd.setHasKnife(pd.getRole().hasKnife());
+
             Player player = Bukkit.getPlayer(entry.getKey());
             if (player != null) {
                 pd.setPlayer(player);
@@ -153,6 +168,13 @@ public class GameSession {
         eventManager.startTicking();
 
         deathManager = new DeathManager(this);
+
+        // Build game map
+        World gameWorld = Bukkit.getWorld(plugin.getConfigManager().getMapConfig().getWorldName());
+        Location center = gameWorld != null ? gameWorld.getSpawnLocation() : null;
+        if (center == null) center = new Location(gameWorld, 0, 64, 0);
+        gameMapManager = new GameMapManager(gameWorld, center);
+        gameMapManager.buildPlatform();
 
         targetTotalTasks = taskManager.getTotalAssignedTasks();
 
@@ -197,6 +219,58 @@ public class GameSession {
                 if (scoreboardManager != null) scoreboardManager.update();
             }
         }.runTaskTimer(plugin, 0, 40);
+
+        // Invisible hands: every 10 ticks, hide held items from other players
+        invisibleHandsTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                ItemStack air = new ItemStack(Material.AIR);
+                for (UUID uuid : alivePlayers) {
+                    Player p = Bukkit.getPlayer(uuid);
+                    if (p == null) continue;
+                    for (UUID otherUuid : alivePlayers) {
+                        if (otherUuid.equals(uuid)) continue;
+                        Player other = Bukkit.getPlayer(otherUuid);
+                        if (other != null) {
+                            other.sendEquipmentChange(p, EquipmentSlot.HAND, air);
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 0, 10);
+
+        // Bomb tick: check for expiring pyro bombs
+        bombTickTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (UUID uuid : alivePlayers) {
+                    PlayerData pd = playerDataMap.get(uuid);
+                    if (pd == null || !pd.hasBomb()) continue;
+                    long remaining = pd.getBombExpireTime() - System.currentTimeMillis();
+                    if (remaining <= 0) {
+                        // Bomb explodes - kill player, no bone block, coal block under feet
+                        Player p = Bukkit.getPlayer(uuid);
+                        if (p != null) {
+                            Location loc = p.getLocation();
+                            if (gameMapManager != null) gameMapManager.placeCoalBlock(loc);
+                            handleDeath(uuid);
+                            p.sendMessage(Constants.PREFIX + "§4§l炸弹爆炸了！");
+                            broadcastMessage(Constants.PREFIX + "§c" + p.getName() + " 脚下的方块变成了煤炭块...");
+                        }
+                        pd.setHasBomb(false);
+                        pd.setBombExpireTime(0);
+                        pd.setBombVisibleToAll(false);
+                    } else if (!pd.isBombVisibleToAll() && remaining < 11_000) {
+                        // Bomb becomes visible to all at 11 seconds
+                        pd.setBombVisibleToAll(true);
+                        Player p = Bukkit.getPlayer(uuid);
+                        if (p != null) {
+                            broadcastMessage(Constants.PREFIX + "§c" + p.getName() + " 身上冒着烟花...");
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 0, 5);
 
         broadcastMessage(Constants.PREFIX + "§a自由行动阶段开始！");
     }
@@ -273,9 +347,12 @@ public class GameSession {
     public void endGame() {
         cancelTimer();
         if (scoreboardTask != null) { scoreboardTask.cancel(); scoreboardTask = null; }
+        if (invisibleHandsTask != null) { invisibleHandsTask.cancel(); invisibleHandsTask = null; }
+        if (bombTickTask != null) { bombTickTask.cancel(); bombTickTask = null; }
         if (eventManager != null) { eventManager.stopAll(); eventManager = null; }
         if (scoreboardManager != null) { scoreboardManager.remove(); scoreboardManager = null; }
         if (deathManager != null) { deathManager.removeAllCorpses(); deathManager = null; }
+        if (gameMapManager != null) { gameMapManager.revertCoalBlocks(); gameMapManager = null; }
 
         stateMachine.forcePhase(GamePhase.GAME_OVER);
         playerDataMap.clear();
@@ -332,6 +409,7 @@ public class GameSession {
     public TimedEventManager getEventManager() { return eventManager; }
     public ScoreboardManager getScoreboardManager() { return scoreboardManager; }
     public DeathManager getDeathManager() { return deathManager; }
+    public GameMapManager getGameMapManager() { return gameMapManager; }
 
     public List<com.imitatorgame.event.TimedGameEvent> getActiveEvents() {
         if (eventManager == null) return List.of();
@@ -366,11 +444,12 @@ public class GameSession {
     }
 
     public void addLobbyPlayer(UUID uuid) {
+        if (isActive()) return; // No joining mid-game
         lobbyPlayers.add(uuid);
-        if (!playerDataMap.containsKey(uuid)) {
-            playerDataMap.put(uuid, new PlayerData(uuid));
-        }
+        playerDataMap.putIfAbsent(uuid, new PlayerData(uuid));
     }
+
+    public boolean isLobbyOpen() { return !isActive(); }
 
     public void removeLobbyPlayer(UUID uuid) {
         lobbyPlayers.remove(uuid);

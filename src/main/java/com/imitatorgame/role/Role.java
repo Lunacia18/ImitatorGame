@@ -11,40 +11,46 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.List;
 
 public enum Role {
-    NONE("无身份", "等待分配身份", Faction.NONE, Material.AIR, false),
+    NONE("无身份", "等待分配身份", Faction.NONE, Material.AIR, 0, -1, false, false),
 
-    DETECTIVE("侦探", "右键玩家调查阵营", Faction.DETECTIVE, Material.COMPASS, false),
-    SHERIFF("治安官", "右键玩家击杀，杀错自己死", Faction.DETECTIVE, Material.GOLDEN_SWORD, false),
-    HUNTER("猎人", "右键玩家击杀，仅1次", Faction.DETECTIVE, Material.DIAMOND_SWORD, false),
-    SENTRY("哨兵", "死亡时自动召开紧急会议", Faction.DETECTIVE, Material.BELL, false),
-    LOCKSMITH("锁匠", "右键铁门开关秘密通道", Faction.DETECTIVE, Material.STRING, false),
-    SPICE_MASTER("香料师", "右键玩家标记追踪", Faction.DETECTIVE, Material.BLAZE_POWDER, false),
+    DETECTIVE("侦探", "右键调查阵营", Faction.DETECTIVE, Material.COMPASS, 24_000, 2, false, false),
+    SHERIFF("治安官", "右键击杀，杀错自己死", Faction.DETECTIVE, Material.GOLDEN_SWORD, 24_000, -1, false, false),
+    HUNTER("猎人", "右键击杀", Faction.DETECTIVE, Material.DIAMOND_SWORD, 24_000, 1, false, false),
+    SENTRY("哨兵", "被击杀时强制拉起尸体开会", Faction.DETECTIVE, Material.AIR, 0, -1, false, false),
+    LOCKSMITH("锁匠", "开关秘密通道铁门", Faction.DETECTIVE, Material.STRING, 0, -1, false, false),
+    SPICE_MASTER("香料师", "右键标记追踪60秒", Faction.DETECTIVE, Material.BLAZE_POWDER, 24_000, -1, false, false),
 
-    MASTER_THIEF("神偷", "隐身+加速 | 信标=停电 | 水桶=水淹", Faction.IMITATOR, Material.POTION, true),
-    CHANGELING("千面人", "伪装成其他玩家 | 信标=停电 | 水桶=水淹", Faction.IMITATOR, Material.PLAYER_HEAD, true),
-    CONSPIRATOR("阴谋家", "会议猜身份 | 信标=停电 | 水桶=水淹", Faction.IMITATOR, Material.WRITABLE_BOOK, true),
-    PYROTECHNICIAN("烟火师", "放置炸弹 | 信标=停电 | 水桶=水淹", Faction.IMITATOR, Material.TNT, true),
+    MASTER_THIEF("神偷", "隐身+加速 | 信标=停电 | 水桶=水淹", Faction.IMITATOR, Material.POTION, 24_000, -1, true, true),
+    CHANGELING("千面人", "伪装外观 | 信标=停电 | 水桶=水淹", Faction.IMITATOR, Material.PLAYER_HEAD, 24_000, -1, true, true),
+    CONSPIRATOR("阴谋家", "会议猜身份 | 信标=停电 | 水桶=水淹", Faction.IMITATOR, Material.WRITABLE_BOOK, 24_000, -1, true, true),
+    PYROTECHNICIAN("烟火师", "造炸弹(10s CD)→塞给别人→倒计时→煤炭块 | 信标=停电 | 水桶=水淹",
+            Faction.IMITATOR, Material.TNT, 24_000, -1, true, false), // no knife
 
-    FOOL("愚人", "被投票淘汰则个人胜利", Faction.MYSTERY_GUEST, Material.AIR, false),
-    VAGABOND("流浪汉", "与足够多玩家互动获胜", Faction.MYSTERY_GUEST, Material.PAPER, false),
-    DELIVERYMAN("送货员", "向所有玩家投递包裹获胜", Faction.MYSTERY_GUEST, Material.NAME_TAG, false);
+    FOOL("愚人", "被投票淘汰则个人胜利", Faction.MYSTERY_GUEST, Material.AIR, 0, -1, false, false),
+    VAGABOND("流浪汉", "与足够多玩家互动获胜", Faction.MYSTERY_GUEST, Material.PAPER, 0, -1, false, false),
+    DELIVERYMAN("送货员", "右键将玩家吞入腹中，开会时才死亡", Faction.MYSTERY_GUEST, Material.NAME_TAG, 0, -1, false, false);
 
     private static final NamespacedKey ITEM_TAG = new NamespacedKey("imitatorgame", "fixed_item");
-    private static final NamespacedKey EVENT_TYPE = new NamespacedKey("imitatorgame", "event_type");
 
     private final String displayName;
     private final String description;
     private final Faction faction;
     private final Material abilityMaterial;
+    private final long cooldownMillis;
+    private final int globalUses; // -1 = unlimited
     private final boolean hasEventItems;
+    private final boolean hasKnife;
 
     Role(String displayName, String description, Faction faction, Material abilityMaterial,
-         boolean hasEventItems) {
+         long cooldownMillis, int globalUses, boolean hasEventItems, boolean hasKnife) {
         this.displayName = displayName;
         this.description = description;
         this.faction = faction;
         this.abilityMaterial = abilityMaterial;
+        this.cooldownMillis = cooldownMillis;
+        this.globalUses = globalUses;
         this.hasEventItems = hasEventItems;
+        this.hasKnife = hasKnife;
     }
 
     public String getDisplayName() { return faction.getColorCode() + displayName; }
@@ -52,29 +58,35 @@ public enum Role {
     public String getDescription() { return description; }
     public Faction getFaction() { return faction; }
     public Material getAbilityMaterial() { return abilityMaterial; }
+    public long getCooldownMillis() { return cooldownMillis; }
+    public int getGlobalUses() { return globalUses; }
+    public boolean hasEventItems() { return hasEventItems; }
+    public boolean hasKnife() { return hasKnife; }
 
     public boolean isDetective() { return faction == Faction.DETECTIVE; }
     public boolean isImitator() { return faction == Faction.IMITATOR; }
     public boolean isMysteryGuest() { return faction == Faction.MYSTERY_GUEST; }
-    public boolean hasEventItems() { return hasEventItems; }
 
     public void giveAbilityItems(Player player) {
-        // Main ability item
+        // Main ability item (skip for NONE, FOOL, SENTRY which are passive)
         if (this != NONE && this != FOOL && this != SENTRY) {
             ItemStack item = createFixedItem(abilityMaterial, getDisplayName(),
-                    List.of("§7" + description), this.name());
+                    List.of("§7" + description, "§8CD: " + (cooldownMillis / 1000) + "s"), this.name());
             player.getInventory().addItem(item);
         }
 
-        // Imitator event items (beacon = power outage, water bucket = flooding)
+        // Imitator event items
         if (hasEventItems) {
-            ItemStack beacon = createFixedItem(Material.BEACON, "§8§l停电装置",
-                    List.of("§7右键触发停电事件", "§7使非模仿者致盲"), "power_outage");
-            player.getInventory().addItem(beacon);
+            player.getInventory().addItem(createFixedItem(Material.BEACON, "§8§l停电装置",
+                    List.of("§7右键触发停电事件"), "power_outage"));
+            player.getInventory().addItem(createFixedItem(Material.WATER_BUCKET, "§1§l水淹装置",
+                    List.of("§7右键触发水淹事件"), "flooding"));
+        }
 
-            ItemStack bucket = createFixedItem(Material.WATER_BUCKET, "§1§l水淹装置",
-                    List.of("§7右键触发水淹事件", "§775秒倒计时，到期模仿者胜"), "flooding");
-            player.getInventory().addItem(bucket);
+        // Imitator knife (iron sword, one-hit kill)
+        if (hasKnife) {
+            player.getInventory().addItem(createFixedItem(Material.IRON_SWORD, "§c§l模仿者之刃",
+                    List.of("§7一击毙命", "§8CD: 24s"), "imitator_knife"));
         }
     }
 
@@ -102,23 +114,14 @@ public enum Role {
 
     public static Role fromAbilityItem(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return NONE;
-        String roleName = item.getItemMeta().getPersistentDataContainer()
-                .get(Constants.ABILITY_KEY, org.bukkit.persistence.PersistentDataType.STRING);
-        if (roleName == null) return NONE;
-        try {
-            return Role.valueOf(roleName);
-        } catch (IllegalArgumentException e) {
-            // Check if it's an event item (power_outage, flooding)
-            return NONE;
-        }
+        String tag = getItemTag(item);
+        if (tag == null) return NONE;
+        try { return Role.valueOf(tag); } catch (IllegalArgumentException e) { return NONE; }
     }
 
-    /**
-     * Give dead player their spectator beacon for returning to lobby
-     */
     public static void giveDeathBeacon(Player player) {
         ItemStack beacon = createFixedItem(Material.BEACON, "§a§l回到大厅",
-                List.of("§7右键点击返回虚空大厅"), "return_lobby");
+                List.of("§7右键返回虚空大厅"), "return_lobby");
         player.getInventory().setItem(0, beacon);
     }
 }

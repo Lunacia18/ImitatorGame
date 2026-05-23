@@ -52,6 +52,28 @@ public class MeetingManager {
             session.broadcastMessage(Constants.PREFIX + "§c" + reporterName + " 通过电台召开了紧急会议！");
         }
 
+        // Deliveryman digestion: swallowed targets die now
+        for (UUID uuid : new ArrayList<>(session.getAlivePlayers())) {
+            PlayerData pd = session.getPlayerData(uuid);
+            if (pd != null && pd.getSwallowedTarget() != null) {
+                UUID swallowed = pd.getSwallowedTarget();
+                Player swallowedPlayer = Bukkit.getPlayer(swallowed);
+                if (swallowedPlayer != null && session.isAlive(swallowed)) {
+                    session.handleDeath(swallowed);
+                    swallowedPlayer.setSpectatorTarget(null);
+                    swallowedPlayer.sendMessage(Constants.PREFIX + "§c送货员召开了会议，你在腹中死亡...");
+                    session.broadcastMessage(Constants.PREFIX + "§c" + swallowedPlayer.getName()
+                            + " 在送货员腹中死亡！");
+                }
+                pd.setSwallowedTarget(null);
+            }
+        }
+
+        // Revert coal blocks from pyro bombs
+        if (session.getGameMapManager() != null) {
+            session.getGameMapManager().revertCoalBlocks();
+        }
+
         teleportToMeetingRoom();
 
         session.broadcastMessage(Constants.PREFIX + "§e讨论阶段开始！你有 §6" + discussionSeconds + " §e秒讨论");

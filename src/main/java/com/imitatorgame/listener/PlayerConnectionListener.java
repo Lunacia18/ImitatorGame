@@ -34,12 +34,15 @@ public class PlayerConnectionListener implements Listener {
         }
 
         // Auto-join if game is in lobby phase
-        if (session.getPhase() == GamePhase.LOBBY) {
+        if (session.getPhase() == GamePhase.LOBBY && session.isLobbyOpen()) {
             session.addLobbyPlayer(player.getUniqueId());
             int lobbySize = session.getLobbySize();
             int min = plugin.getConfigManager().getGameConfig().minPlayers();
             player.sendMessage(Constants.PREFIX + "§a你已自动加入游戏大厅！(§6" + lobbySize + "§a/" + min + ")");
             player.sendMessage(Constants.PREFIX + "§e输入 §6/ready §e准备！满人自动开始");
+        } else if (session.isActive()) {
+            player.sendMessage(Constants.PREFIX + "§c游戏正在进行中，无法加入。请等待下一局。");
+            if (lobby != null) lobby.teleportToLobby(player);
         }
     }
 
