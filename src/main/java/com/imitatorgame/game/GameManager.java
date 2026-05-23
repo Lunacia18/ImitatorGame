@@ -11,9 +11,17 @@ public class GameManager {
 
     public GameManager(ImitatorGamePlugin plugin) {
         this.plugin = plugin;
+        ensureSession();
+    }
+
+    private void ensureSession() {
+        if (currentSession == null) {
+            currentSession = new GameSession(plugin);
+        }
     }
 
     public GameSession getCurrentSession() {
+        ensureSession();
         return currentSession;
     }
 

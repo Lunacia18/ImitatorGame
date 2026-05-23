@@ -33,8 +33,11 @@ public class PlayerConnectionListener implements Listener {
             return;
         }
 
+        // Auto-join if game is in lobby phase
         if (session.getPhase() == GamePhase.LOBBY) {
-            player.sendMessage(Constants.PREFIX + "§e游戏大厅已开放！输入 §6/ig join §e加入");
+            session.addLobbyPlayer(player.getUniqueId());
+            player.sendMessage(Constants.PREFIX + "§a你已自动加入游戏大厅！(" + session.getLobbySize() + " 人)");
+            player.sendMessage(Constants.PREFIX + "§7等待管理员输入 §e/ig start §7开始游戏");
         }
     }
 

@@ -65,7 +65,21 @@ public class GameSession {
     }
 
     public boolean start() {
-        if (lobbyPlayers.size() < plugin.getConfigManager().getGameConfig().minPlayers()) return false;
+        // Auto-add all online players in the lobby world who haven't joined yet
+        var lobbyWorld = plugin.getLobbyManager().getLobbyWorld();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (lobbyWorld != null && p.getWorld().equals(lobbyWorld)
+                    && !lobbyPlayers.contains(p.getUniqueId())) {
+                lobbyPlayers.add(p.getUniqueId());
+            }
+        }
+
+        if (lobbyPlayers.size() < plugin.getConfigManager().getGameConfig().minPlayers()) {
+            broadcastToAll(Constants.PREFIX + "§c玩家不足！当前 "
+                    + lobbyPlayers.size() + " 人，需要 "
+                    + plugin.getConfigManager().getGameConfig().minPlayers() + " 人");
+            return false;
+        }
         stateMachine.transitionTo(GamePhase.STARTING);
         countdownSeconds = plugin.getConfigManager().getGameConfig().lobbyWaitSeconds();
 
