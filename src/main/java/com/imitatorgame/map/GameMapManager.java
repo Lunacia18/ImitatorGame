@@ -49,29 +49,17 @@ public class GameMapManager {
         world.setTime(6000);
         world.setClearWeatherDuration(Integer.MAX_VALUE);
 
-        // Place 10 random lodestone tasks
-        placeRandomLodestones();
+        // Place glowstone grid every 5 blocks
+        placeGlowstoneGrid();
         // Place furnace + crafting table in 10x10 area near center
         placeUtilities();
     }
 
-    private void placeRandomLodestones() {
-        int y = 65, cx = center.getBlockX(), cz = center.getBlockZ(), hs = halfSize - 1;
-        taskLodestones.clear();
-        Set<Location> used = new HashSet<>();
-        used.add(new Location(world, cx, y - 1, cz)); // center lodestone
-        for (int i = 0; i < 10; i++) {
-            for (int attempt = 0; attempt < 50; attempt++) {
-                int x = cx + random.nextInt(2 * hs) - hs;
-                int z = cz + random.nextInt(2 * hs) - hs;
-                Location loc = new Location(world, x + 0.5, y, z + 0.5);
-                Location key = loc.getBlock().getLocation();
-                if (!used.contains(key) && world.getBlockAt(x, y - 1, z).getType() == floorMaterial) {
-                    world.getBlockAt(x, y, z).setType(Material.LODESTONE);
-                    taskLodestones.add(loc);
-                    used.add(key);
-                    break;
-                }
+    private void placeGlowstoneGrid() {
+        int y = 65, cx = center.getBlockX(), cz = center.getBlockZ(), hs = halfSize;
+        for (int x = -hs; x <= hs; x += 5) {
+            for (int z = -hs; z <= hs; z += 5) {
+                world.getBlockAt(cx + x, y, cz + z).setType(Material.GLOWSTONE);
             }
         }
     }

@@ -28,6 +28,8 @@ public class PlayerDeathListener implements Listener {
         if (!session.isAlive(victim.getUniqueId())) return;
 
         event.setDeathMessage(null);
+        event.getDrops().clear(); // keep inventory
+        event.setKeepInventory(true);
         PlayerData pd = session.getPlayerData(victim.getUniqueId());
         Location deathLoc = victim.getLocation();
 

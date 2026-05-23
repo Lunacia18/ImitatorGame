@@ -134,7 +134,7 @@ public class GameSession {
         if (center == null) center = new Location(gameWorld, 0, 64, 0);
         gameMapManager = new GameMapManager(gameWorld, center);
         gameMapManager.buildPlatform();
-        targetTotalTasks = 10 * 20; // 10 lodestones x 20 clicks
+        targetTotalTasks = 0; // tasks removed, detective win via elim only
         countdownSeconds = plugin.getConfigManager().getGameConfig().roleRevealSeconds();
         currentTimer = new BukkitRunnable() {
             public void run() {
@@ -374,19 +374,24 @@ public class GameSession {
         deadPlayers.add(victimUuid);
         PlayerData pd = playerDataMap.get(victimUuid);
         if (pd != null) { pd.setAlive(false); pd.setHasBomb(false); pd.setBombExpireTime(0); }
-        // Deliveryman killed → swallowed target pops out
+        // Deliveryman killed → swallowed targets pop out
         if (pd != null && pd.getSwallowedTarget() != null) {
             UUID swallowed = pd.getSwallowedTarget();
             Player sp = Bukkit.getPlayer(swallowed);
             if (sp != null && alivePlayers.contains(swallowed)) {
+                sp.setInvisible(false);
                 sp.setSpectatorTarget(null);
                 broadcastMessage(Constants.PREFIX + "§e" + sp.getName() + " 从送货员腹中掉出！");
-                pd.setSwallowedTarget(null);
             }
+            pd.setSwallowedTarget(null);
         }
         Player victim = Bukkit.getPlayer(victimUuid);
-        if (victim != null) { victim.setGameMode(GameMode.SPECTATOR); victim.setInvisible(true);
-            victim.setCollidable(false); victim.setSilent(true); Role.giveDeathBeacon(victim); }
+        if (victim != null) {
+            // Spawn corpse bone block
+            if (deathManager != null) deathManager.spawnCorpse(victim, victim.getLocation());
+            victim.setGameMode(GameMode.SPECTATOR); victim.setInvisible(true);
+            victim.setCollidable(false); victim.setSilent(true); Role.giveDeathBeacon(victim);
+        }
     }
 
     public void eliminateByVote(UUID targetUuid) {

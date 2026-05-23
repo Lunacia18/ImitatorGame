@@ -22,14 +22,12 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-
 import java.util.*;
 
 public class PlayerInteractListener implements Listener {
 
     private final ImitatorGamePlugin plugin;
-    private final Map<UUID, Long> taskCooldown = new HashMap<>();
-    private static final long TASK_CD_MILLIS = 15_000;
+    private int furnaceClicks, craftingClicks;
 
     public PlayerInteractListener(ImitatorGamePlugin plugin) { this.plugin = plugin; }
 
@@ -56,38 +54,26 @@ public class PlayerInteractListener implements Listener {
 
         // Event item triggers
         if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            ItemStack held = player.getInventory().getItemInMainHand();
-            String tag = Role.getItemTag(held);
-            if (tag != null) {
-                switch (tag) {
-                    case "power_outage" -> { if (checkCd(player, pd)) session.triggerPowerOutage(); return; }
-                    case "flooding" -> { if (checkCd(player, pd)) session.triggerFlooding(); return; }
-                    case "imitator_knife" -> { player.sendMessage(Constants.PREFIX + "§c刀需要右键玩家使用"); return; }
-                }
-            }
+            String tag = Role.getItemTag(player.getInventory().getItemInMainHand());
+            if ("power_outage".equals(tag)) { session.triggerPowerOutage(); return; }
+            if ("flooding".equals(tag)) { session.triggerFlooding(); return; }
         }
 
         if (clicked == null) return;
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
 
         // Bone block corpse → meeting
         if (clicked.getType() == Material.BONE_BLOCK && session.getDeathManager() != null) {
             UUID v = session.getDeathManager().getVictimFromBlock(clicked);
-            if (v != null && event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-                session.callMeeting(player, v);
-                return;
-            }
+            if (v != null) { session.callMeeting(player, v); return; }
         }
 
-        boolean rightBlock = event.getAction() == Action.RIGHT_CLICK_BLOCK;
-        if (rightBlock && clicked.getType() == Material.IRON_DOOR) { handleIronDoor(player, clicked, session); return; }
-        if (rightBlock && clicked.getType() == Material.FURNACE) { handleFurnaceFix(player, session); return; }
-        if (rightBlock && clicked.getType() == Material.CRAFTING_TABLE) { handleCraftingTableFix(player, session); return; }
+        // Iron door
+        if (clicked.getType() == Material.IRON_DOOR) { handleIronDoor(player, clicked, session); return; }
 
-        // Task: click lodestone
-        if (rightBlock && clicked.getType() == Material.LODESTONE) {
-            handleTaskLodestone(player, clicked, pd, session);
-            return;
-        }
+        // Event fixes: blackout = crafting table 25x, water valve = furnace 25x
+        if (clicked.getType() == Material.CRAFTING_TABLE) { handleCraftingTableFix(player, session); return; }
+        if (clicked.getType() == Material.FURNACE) { handleFurnaceFix(player, session); return; }
     }
 
     @EventHandler
@@ -96,7 +82,6 @@ public class PlayerInteractListener implements Listener {
         Player player = event.getPlayer();
         GameSession session = plugin.getGameManager().getCurrentSession();
         if (session == null) return;
-
         if (session.isActive() && session.isDead(player.getUniqueId())) { event.setCancelled(true); handleDeadReturn(player, session); return; }
 
         GamePhase phase = session.getPhase();
@@ -108,36 +93,16 @@ public class PlayerInteractListener implements Listener {
         PlayerData pd = session.getPlayerData(player.getUniqueId());
         if (pd == null) return;
 
-        // Deliveryman eat
+        // Deliveryman eat (right-click)
         if (pd.getRole() == Role.DELIVERYMAN) { handleDeliverymanEat(player, target, pd, session); return; }
 
         // Pyro bomb pass
-        if (pd.getRole() == Role.PYROTECHNICIAN && pd.hasBomb()) {
-            ItemStack held = player.getInventory().getItemInMainHand();
-            if ("pyro_bomb".equals(Role.getItemTag(held))) { handleBombPass(player, target, pd, session); return; }
-        }
-
-        // Knife kill (one-hit)
-        ItemStack held = player.getInventory().getItemInMainHand();
-        if ("imitator_knife".equals(Role.getItemTag(held))) {
-            if (!checkCd(player, pd)) return;
-            session.handleDeath(target.getUniqueId());
-            player.sendMessage(Constants.PREFIX + "§c一刀击杀了 " + target.getName());
-            target.sendMessage(Constants.PREFIX + "§4被模仿者一刀毙命！");
-            return;
+        if (pd.getRole() == Role.PYROTECHNICIAN && pd.hasBomb()
+                && "pyro_bomb".equals(Role.getItemTag(player.getInventory().getItemInMainHand()))) {
+            handleBombPass(player, target, pd, session); return;
         }
 
         handleRoleAbility(player, target, session);
-    }
-
-    // --- Cooldown ---
-    private boolean checkCd(Player player, PlayerData pd) {
-        if (pd.isOnCooldown()) {
-            player.sendMessage(Constants.PREFIX + "§c冷却中！还需 " + String.format("%.1f", pd.getCooldownRemainingSeconds()) + " 秒");
-            return false;
-        }
-        if (!pd.canUseGlobal()) { player.sendMessage(Constants.PREFIX + "§c技能次数已用完"); return false; }
-        pd.tryUseGlobal(); pd.markAbilityUsed(); return true;
     }
 
     // --- Dead return ---
@@ -147,28 +112,27 @@ public class PlayerInteractListener implements Listener {
             player.setSpectatorTarget(null); player.getInventory().clear();
             var lobby = plugin.getLobbyManager();
             if (lobby != null) lobby.teleportToLobby(player);
-            player.sendMessage(Constants.PREFIX + "§a已返回大厅");
         }
     }
 
-    // --- Deliveryman eat ---
+    // --- Deliveryman eat (unlimited) ---
     private void handleDeliverymanEat(Player player, Player target, PlayerData pd, GameSession session) {
-        if (pd.getSwallowedTarget() != null) { player.sendMessage(Constants.PREFIX + "§c已吞一人"); return; }
         if (pd.isOnCooldown()) { player.sendMessage(Constants.PREFIX + "§c冷却中"); return; }
         pd.setSwallowedTarget(target.getUniqueId());
         pd.incrementEatUseCount();
         pd.setAbilityCooldownMillis(pd.getDeliverymanCooldown());
         pd.markAbilityUsed();
-        player.sendMessage(Constants.PREFIX + "§a吞下 " + target.getName() + "！会议时死亡");
-        target.sendMessage(Constants.PREFIX + "§e被送货员吞入腹中...会议召开时死亡");
+        target.setInvisible(true);
         target.setSpectatorTarget(player);
+        player.sendMessage(Constants.PREFIX + "§a吞下 " + target.getName());
+        target.sendMessage(Constants.PREFIX + "§e被送货员吞入腹中...会议时死亡");
     }
 
     // --- Pyro bomb pass ---
     private void handleBombPass(Player player, Player target, PlayerData pd, GameSession session) {
         pd.setHasBomb(false); pd.setBombExpireTime(0); pd.setBombVisibleToAll(false);
-        for (ItemStack item : player.getInventory().getContents())
-            if (item != null && "pyro_bomb".equals(Role.getItemTag(item))) player.getInventory().remove(item);
+        for (ItemStack i : player.getInventory().getContents())
+            if (i != null && "pyro_bomb".equals(Role.getItemTag(i))) player.getInventory().remove(i);
         PlayerData td = session.getPlayerData(target.getUniqueId());
         td.setHasBomb(true); td.setBombExpireTime(System.currentTimeMillis() + 20_000); td.setBombVisibleToAll(false);
         target.getInventory().addItem(Role.createFixedItem(Material.TNT, "§4§l定时炸弹",
@@ -177,60 +141,27 @@ public class PlayerInteractListener implements Listener {
         target.sendMessage(Constants.PREFIX + "§4被塞了炸弹！20秒后爆炸！");
     }
 
-    // --- Task: lodestone 20 clicks ---
-    private void handleTaskLodestone(Player player, Block block, PlayerData pd, GameSession session) {
-        if (pd.getFaction() != Faction.DETECTIVE) return;
-        Location loc = block.getLocation();
-        if (pd.getCurrentTaskLodestone() != null && !pd.getCurrentTaskLodestone().equals(loc)) {
-            pd.setTaskClickCount(0);
-        }
-        pd.setCurrentTaskLodestone(loc);
-        pd.incrementTaskClickCount();
-        if (pd.getTaskClickCount() >= 20) {
-            Long last = taskCooldown.get(player.getUniqueId());
-            if (last != null && System.currentTimeMillis() - last < TASK_CD_MILLIS) {
-                player.sendMessage(Constants.PREFIX + "§c任务冷却中");
-                return;
-            }
-            taskCooldown.put(player.getUniqueId(), System.currentTimeMillis());
-            pd.setTaskClickCount(0);
-            pd.setCurrentTaskLodestone(null);
-            pd.incrementTaskProgress();
-            session.incrementTotalTasksCompleted();
-            player.sendMessage(Constants.PREFIX + "§a任务完成！(" + pd.getTaskProgress() + "/" + pd.getTotalTasks() + ")");
-            player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1f);
-            if (session.getTargetTotalTasks() > 0 && session.getTotalTasksCompleted() >= session.getTargetTotalTasks()) {
-                session.broadcastMessage(Constants.PREFIX + "§b所有任务完成！");
-                new com.imitatorgame.game.WinConditionChecker(session).checkAllConditions();
-            }
-        } else {
-            player.sendActionBar(Component.text("§e任务进度: " + pd.getTaskClickCount() + "/20"));
-        }
-    }
-
-    // --- Furnace = power outage fix (30 clicks) ---
-    private int furnaceClicks = 0;
-    private void handleFurnaceFix(Player player, GameSession session) {
+    // --- Power outage fix = crafting table 25x ---
+    private void handleCraftingTableFix(Player player, GameSession session) {
         var em = session.getEventManager();
         if (em == null || !em.hasActiveEvent(PowerOutageEvent.class)) return;
-        furnaceClicks++;
-        player.sendActionBar(Component.text("§e修复电力: " + furnaceClicks + "/30"));
-        if (furnaceClicks >= 30) {
-            furnaceClicks = 0;
+        craftingClicks++;
+        player.sendActionBar(Component.text("§e恢复电力: " + craftingClicks + "/25"));
+        if (craftingClicks >= 25) {
+            craftingClicks = 0;
             for (TimedGameEvent e : new ArrayList<>(session.getActiveEvents()))
                 if (e instanceof PowerOutageEvent poe) { poe.fix(session); break; }
         }
     }
 
-    // --- Crafting table = water valve fix (30 clicks) ---
-    private int craftingClicks = 0;
-    private void handleCraftingTableFix(Player player, GameSession session) {
+    // --- Water valve fix = furnace 25x ---
+    private void handleFurnaceFix(Player player, GameSession session) {
         var em = session.getEventManager();
         if (em == null || !em.hasActiveEvent(FloodingEvent.class)) return;
-        craftingClicks++;
-        player.sendActionBar(Component.text("§e关闭水阀: " + craftingClicks + "/30"));
-        if (craftingClicks >= 30) {
-            craftingClicks = 0;
+        furnaceClicks++;
+        player.sendActionBar(Component.text("§e关闭水阀: " + furnaceClicks + "/25"));
+        if (furnaceClicks >= 25) {
+            furnaceClicks = 0;
             for (TimedGameEvent e : new ArrayList<>(session.getActiveEvents()))
                 if (e instanceof FloodingEvent fe) { fe.tryFixValve(1, player, session); break; }
         }
@@ -240,12 +171,10 @@ public class PlayerInteractListener implements Listener {
     private void handleIronDoor(Player player, Block door, GameSession session) {
         PlayerData pd = session.getPlayerData(player.getUniqueId());
         if (pd == null || (pd.getFaction() != Faction.IMITATOR && pd.getRole() != Role.LOCKSMITH)) return;
-        if (door.getBlockData() instanceof org.bukkit.block.data.type.Door dd) {
-            dd.setOpen(!dd.isOpen()); door.setBlockData(dd);
-        }
+        if (door.getBlockData() instanceof org.bukkit.block.data.type.Door dd) { dd.setOpen(!dd.isOpen()); door.setBlockData(dd); }
     }
 
-    // --- Role abilities ---
+    // --- Role abilities (right-click) ---
     private void handleRoleAbility(Player player, Player target, GameSession session) {
         PlayerData pd = session.getPlayerData(player.getUniqueId());
         if (pd == null) return;
@@ -254,17 +183,6 @@ public class PlayerInteractListener implements Listener {
                 if (!checkCd(player, pd)) return;
                 PlayerData td = session.getPlayerData(target.getUniqueId());
                 player.sendMessage(Constants.PREFIX + "§a" + target.getName() + " 阵营: " + (td != null ? td.getFaction().getDisplayName() : "?"));
-            }
-            case SHERIFF -> {
-                if (!checkCd(player, pd)) return;
-                PlayerData td = session.getPlayerData(target.getUniqueId());
-                if (td != null && td.getFaction() == Faction.IMITATOR) {
-                    session.handleDeath(target.getUniqueId()); player.sendMessage(Constants.PREFIX + "§a击杀了模仿者！");
-                } else { session.handleDeath(player.getUniqueId()); player.sendMessage(Constants.PREFIX + "§c对方无辜！"); }
-            }
-            case HUNTER -> {
-                if (!checkCd(player, pd)) return;
-                session.handleDeath(target.getUniqueId()); player.sendMessage(Constants.PREFIX + "§a击杀了 " + target.getName());
             }
             case SPICE_MASTER -> {
                 if (!checkCd(player, pd)) return;
@@ -281,18 +199,15 @@ public class PlayerInteractListener implements Listener {
                 if (!checkCd(player, pd)) return;
                 if (pd.getRecordedTarget() == null) {
                     pd.setRecordedTarget(target.getUniqueId());
-                    player.sendMessage(Constants.PREFIX + "§a已记录 " + target.getName() + "，再次右键变装30秒");
+                    player.sendMessage(Constants.PREFIX + "§a记录 " + target.getName() + "，再次右键变装30秒");
                 } else {
-                    Player recorded = Bukkit.getPlayer(pd.getRecordedTarget());
-                    if (recorded != null) {
-                        player.setPlayerListName(recorded.getName());
-                        player.displayName(Component.text(recorded.getName()));
-                        player.sendMessage(Constants.PREFIX + "§a变装为 " + recorded.getName() + "！持续30秒");
+                    Player rec = Bukkit.getPlayer(pd.getRecordedTarget());
+                    if (rec != null) {
+                        player.setPlayerListName(rec.getName()); player.displayName(Component.text(rec.getName()));
+                        player.sendMessage(Constants.PREFIX + "§a变装为 " + rec.getName() + "！30秒");
                         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                            player.setPlayerListName(player.getName());
-                            player.displayName(null);
-                            pd.setRecordedTarget(null);
-                            player.sendMessage(Constants.PREFIX + "§e变装结束");
+                            player.setPlayerListName(player.getName()); player.displayName(null);
+                            pd.setRecordedTarget(null); player.sendMessage(Constants.PREFIX + "§e变装结束");
                         }, 20 * 30);
                     }
                 }
@@ -312,12 +227,17 @@ public class PlayerInteractListener implements Listener {
         }
     }
 
+    private boolean checkCd(Player player, PlayerData pd) {
+        if (pd.isOnCooldown()) { player.sendMessage(Constants.PREFIX + "§c冷却中！还需 " + String.format("%.1f", pd.getCooldownRemainingSeconds()) + " 秒"); return false; }
+        if (!pd.canUseGlobal()) { player.sendMessage(Constants.PREFIX + "§c次数已用完"); return false; }
+        pd.tryUseGlobal(); pd.markAbilityUsed(); return true;
+    }
+
     @EventHandler
     public void onDrop(PlayerDropItemEvent event) {
         GameSession session = plugin.getGameManager().getCurrentSession();
         if (session == null || !session.isActive()) return;
-        if (!event.getPlayer().hasPermission("imitatorgame.admin") && Role.isFixedItem(event.getItemDrop().getItemStack())) {
+        if (!event.getPlayer().hasPermission("imitatorgame.admin") && Role.isFixedItem(event.getItemDrop().getItemStack()))
             event.setCancelled(true);
-        }
     }
 }
