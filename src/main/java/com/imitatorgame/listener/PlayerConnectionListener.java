@@ -20,8 +20,14 @@ public class PlayerConnectionListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         var player = event.getPlayer();
-        var session = plugin.getGameManager().getCurrentSession();
+        var lobby = plugin.getLobbyManager();
 
+        // Teleport to void lobby immediately
+        if (lobby != null) {
+            lobby.teleportToLobby(player);
+        }
+
+        var session = plugin.getGameManager().getCurrentSession();
         if (session == null) {
             player.sendMessage(Constants.PREFIX + "§7服务器正在等待管理员开始游戏。输入 §e/ig start §7开始！");
             return;

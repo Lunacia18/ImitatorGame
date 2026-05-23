@@ -31,10 +31,11 @@ game:
 
 map:
   world: "world"
+  lobby-world: "imitator_lobby"
   lobby-spawn:
-    world: world
+    world: imitator_lobby
     x: 0.5
-    y: 100
+    y: 65
     z: 0.5
     yaw: 0.0
     pitch: 0.0

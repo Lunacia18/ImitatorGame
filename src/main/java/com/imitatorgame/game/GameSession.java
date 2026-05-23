@@ -271,6 +271,10 @@ public class GameSession {
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.setGameMode(GameMode.ADVENTURE);
             p.getInventory().clear();
+            var lobby = plugin.getLobbyManager();
+            if (lobby != null) {
+                lobby.teleportToLobby(p);
+            }
         }
         stateMachine.forcePhase(GamePhase.LOBBY);
     }
