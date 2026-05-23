@@ -1,13 +1,11 @@
 package com.imitatorgame.listener;
 
 import com.imitatorgame.ImitatorGamePlugin;
-import com.imitatorgame.game.GamePhase;
 import com.imitatorgame.game.GameSession;
 import com.imitatorgame.game.PlayerData;
 import com.imitatorgame.role.Role;
 import com.imitatorgame.util.Constants;
 import org.bukkit.Location;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -30,14 +28,27 @@ public class PlayerDeathListener implements Listener {
         if (!session.isAlive(victim.getUniqueId())) return;
 
         event.setDeathMessage(null);
-
         PlayerData pd = session.getPlayerData(victim.getUniqueId());
         Location deathLoc = victim.getLocation();
 
-        spawnCorpse(victim, deathLoc);
+        // Spawn bone block corpse
+        if (session.getDeathManager() != null) {
+            session.getDeathManager().spawnCorpse(victim, deathLoc);
+        }
 
         session.handleDeath(victim.getUniqueId());
 
+        // Make dead player invisible and no collision
+        victim.setInvisible(true);
+        victim.setCollidable(false);
+        victim.setSilent(true);
+
+        // Give lobby return beacon
+        Role.giveDeathBeacon(victim);
+
+        victim.sendMessage(Constants.PREFIX + "§7你已死亡。手持信标右键可返回大厅。");
+
+        // Sentry triggers meeting
         if (pd != null && pd.getRole() == Role.SENTRY) {
             session.broadcastMessage(Constants.PREFIX + "§c哨兵被击杀！自动召开紧急会议！");
             session.callMeeting(null, victim.getUniqueId());
@@ -49,24 +60,8 @@ public class PlayerDeathListener implements Listener {
         if (!(event.getEntity() instanceof Player)) return;
         GameSession session = plugin.getGameManager().getCurrentSession();
         if (session == null || !session.isActive()) return;
-
         if (session.isInMeeting()) {
             event.setCancelled(true);
         }
-    }
-
-    private void spawnCorpse(Player victim, Location loc) {
-        loc.getWorld().spawn(loc, ArmorStand.class, stand -> {
-            stand.setVisible(false);
-            stand.setMarker(true);
-            stand.setGravity(false);
-            stand.customName(net.kyori.adventure.text.Component.text("§c" + victim.getName() + " 的尸体"));
-            stand.setCustomNameVisible(true);
-            stand.getPersistentDataContainer().set(
-                    Constants.CORPSE_KEY,
-                    org.bukkit.persistence.PersistentDataType.STRING,
-                    victim.getUniqueId().toString()
-            );
-        });
     }
 }

@@ -44,16 +44,16 @@ public class ImitatorGameCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendHelp(CommandSender sender) {
-        sender.sendMessage("§6=== 模仿者游戏帮助 ===");
-        sender.sendMessage("§e/ig join §7- 加入游戏大厅");
-        sender.sendMessage("§e/ig leave §7- 离开游戏大厅");
-        sender.sendMessage("§e/ig start §7- 手动开始游戏");
-        sender.sendMessage("§e/ig stop §7- 强制结束游戏");
-        sender.sendMessage("§e/ig list §7- 查看玩家列表");
-        sender.sendMessage("§e/ig reload §7- 重载配置");
-        sender.sendMessage("§e/ig setspawn <lobby|meeting|game> §7- 设置生成点");
-        sender.sendMessage("§e/ig addtask <type> <room> §7- 添加任务位置");
-        sender.sendMessage("§e/ig adddoor §7- 添加秘密通道门");
+        sender.sendRichMessage("<gold>=== 模仿者游戏帮助 ===</gold>");
+        sender.sendRichMessage("<yellow>/ig join</yellow> <gray>- 加入游戏大厅</gray>");
+        sender.sendRichMessage("<yellow>/ig leave</yellow> <gray>- 离开游戏大厅</gray>");
+        sender.sendRichMessage("<yellow>/ig start</yellow> <gray>- 手动开始游戏</gray>");
+        sender.sendRichMessage("<yellow>/ig stop</yellow> <gray>- 强制结束游戏</gray>");
+        sender.sendRichMessage("<yellow>/ig list</yellow> <gray>- 查看玩家列表</gray>");
+        sender.sendRichMessage("<yellow>/ig reload</yellow> <gray>- 重载配置</gray>");
+        sender.sendRichMessage("<yellow>/ig setspawn <lobby|meeting|game></yellow> <gray>- 设置生成点</gray>");
+        sender.sendRichMessage("<yellow>/ig addtask <type> <room></yellow> <gray>- 添加任务位置</gray>");
+        sender.sendRichMessage("<yellow>/ig adddoor</yellow> <gray>- 添加秘密通道门</gray>");
     }
 
     private boolean handleJoin(CommandSender sender) {

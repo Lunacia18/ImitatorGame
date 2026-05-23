@@ -41,6 +41,7 @@ public class GameSession {
     private TaskManager taskManager;
     private ScoreboardManager scoreboardManager;
     private TimedEventManager eventManager;
+    private DeathManager deathManager;
     private BukkitTask currentTimer;
     private BukkitTask scoreboardTask;
     private int countdownSeconds;
@@ -56,6 +57,8 @@ public class GameSession {
     public boolean isActive() {
         return stateMachine.isInGame();
     }
+
+    public GameStateMachine getStateMachine() { return stateMachine; }
 
     public boolean isInMeeting() {
         return stateMachine.isMeeting();
@@ -149,6 +152,8 @@ public class GameSession {
         eventManager = new TimedEventManager(this);
         eventManager.startTicking();
 
+        deathManager = new DeathManager(this);
+
         targetTotalTasks = taskManager.getTotalAssignedTasks();
 
         countdownSeconds = plugin.getConfigManager().getGameConfig().roleRevealSeconds();
@@ -241,7 +246,7 @@ public class GameSession {
         }.runTaskTimer(plugin, 0, 20);
     }
 
-    private void checkWinAndResume() {
+    public void checkWinAndResume() {
         WinConditionChecker checker = new WinConditionChecker(this);
         if (checker.checkAllConditions()) {
             return;
@@ -270,6 +275,7 @@ public class GameSession {
         if (scoreboardTask != null) { scoreboardTask.cancel(); scoreboardTask = null; }
         if (eventManager != null) { eventManager.stopAll(); eventManager = null; }
         if (scoreboardManager != null) { scoreboardManager.remove(); scoreboardManager = null; }
+        if (deathManager != null) { deathManager.removeAllCorpses(); deathManager = null; }
 
         stateMachine.forcePhase(GamePhase.GAME_OVER);
         playerDataMap.clear();
@@ -286,6 +292,10 @@ public class GameSession {
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.setGameMode(GameMode.ADVENTURE);
+            p.setInvisible(false);
+            p.setCollidable(true);
+            p.setSilent(false);
+            p.setWalkSpeed(0.2f);
             p.getInventory().clear();
             var lobby = plugin.getLobbyManager();
             if (lobby != null) {
@@ -321,6 +331,7 @@ public class GameSession {
 
     public TimedEventManager getEventManager() { return eventManager; }
     public ScoreboardManager getScoreboardManager() { return scoreboardManager; }
+    public DeathManager getDeathManager() { return deathManager; }
 
     public List<com.imitatorgame.event.TimedGameEvent> getActiveEvents() {
         if (eventManager == null) return List.of();
