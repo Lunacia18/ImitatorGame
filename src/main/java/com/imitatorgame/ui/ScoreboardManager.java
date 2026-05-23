@@ -81,6 +81,7 @@ public class ScoreboardManager {
             case STARTING -> "§6即将开始...";
             case ROLE_REVEAL -> "§d身份揭示";
             case FREE_ACTION -> "§a自由行动";
+            case RUSH_HOUR -> "§4急速时刻";
             case MEETING_DISCUSSION -> "§b会议讨论中";
             case MEETING_VOTING -> "§c投票中";
             case MEETING_RESULT -> "§6会议结果";

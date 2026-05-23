@@ -435,6 +435,7 @@ public class GameSession {
     public int getTotalTasksCompleted() { return totalTasksCompleted; }
     public void incrementTotalTasksCompleted() { totalTasksCompleted++; }
     public int getTargetTotalTasks() { return targetTotalTasks; }
+    public void setTargetTotalTasks(int v) { targetTotalTasks = v; }
     public List<TimedGameEvent> getActiveEvents() { return eventManager != null ? eventManager.getActiveEvents() : List.of(); }
     public void broadcastMessage(String msg) {
         for (UUID u : alivePlayers) { Player p = Bukkit.getPlayer(u); if (p != null) p.sendMessage(msg); }
