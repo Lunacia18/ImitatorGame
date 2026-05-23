@@ -1,0 +1,32 @@
+name: ImitatorGame
+version: "1.0.0"
+main: com.imitatorgame.ImitatorGamePlugin
+api-version: "1.21"
+description: Identity V Imitator Game mode for Paper
+author: ImitatorGameTeam
+
+commands:
+  imitatorgame:
+    description: Main ImitatorGame command
+    aliases: [ig]
+    usage: /ig <join|leave|start|stop|list|reload|setspawn|addtask|adddoor>
+  vote:
+    description: Vote during meeting phase
+    usage: /vote <player|skip>
+  report:
+    description: Report a dead body
+    usage: /report
+  radio:
+    description: Use radio to call emergency meeting
+    usage: /radio
+  guess:
+    description: Guess a player's role (Conspirator only)
+    usage: /guess <player> <role>
+
+permissions:
+  imitatorgame.player:
+    description: Player commands
+    default: true
+  imitatorgame.admin:
+    description: Admin commands
+    default: op

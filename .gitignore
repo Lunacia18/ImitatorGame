@@ -1,0 +1,23 @@
+# Maven
+target/
+*.jar
+!target/jetbrains-annotations.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Java
+*.class
+*.log
+
+# Server test artifacts
+test-server/

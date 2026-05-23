@@ -1,0 +1,119 @@
+game:
+  min-players: 10
+  max-players: 12
+  role-distribution:
+    detective-count: 6
+    imitator-count: 2
+    mystery-guest-count: 2
+  timers:
+    lobby-wait-seconds: 60
+    role-reveal-seconds: 5
+    discussion-seconds: 30
+    voting-seconds: 20
+    result-seconds: 10
+    power-outage-seconds: 60
+    flooding-seconds: 75
+  abilities:
+    hunter-max-uses: 1
+    conspirator-max-guesses: 2
+    master-thief-invisibility-seconds: 10
+    master-thief-cooldown-seconds: 30
+    disguise-duration-seconds: 30
+    disguise-cooldown-seconds: 45
+    spy-tracker-duration-seconds: 60
+    spy-tracker-cooldown-seconds: 20
+    vagabond-min-interactions: 5
+    deliveryman-targets: 10
+    bomb-fuse-seconds: 5
+    bomb-radius: 3
+    imitator-event-cooldown-seconds: 90
+  tasks-per-player: 5
+
+map:
+  world: "world"
+  lobby-spawn:
+    world: world
+    x: 0.5
+    y: 100
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+  game-spawns: []
+  meeting-room:
+    world: world
+    x: 0.5
+    y: 80
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+  radio-location:
+    world: world
+    x: 30.5
+    y: 64
+    z: 10.5
+  rooms:
+    dining-room:
+      type: DINING_ROOM
+      center:
+        world: world
+        x: 30
+        y: 64
+        z: 10
+      radius: 8
+    surveillance-room:
+      type: SURVEILLANCE_ROOM
+      center:
+        world: world
+        x: -20
+        y: 64
+        z: 30
+      radius: 6
+    dormitory:
+      type: DORMITORY
+      center:
+        world: world
+        x: 40
+        y: 64
+        z: -15
+      radius: 7
+    power-room:
+      type: POWER_ROOM
+      center:
+        world: world
+        x: -30
+        y: 64
+        z: -20
+      radius: 5
+    bathroom-1:
+      type: BATHROOM
+      center:
+        world: world
+        x: 15
+        y: 64
+        z: -30
+      radius: 4
+    bathroom-2:
+      type: BATHROOM
+      center:
+        world: world
+        x: 25
+        y: 64
+        z: 35
+      radius: 4
+  iron-doors: []
+  tasks: []
+  power-outage-fix:
+    world: world
+    x: -30.5
+    y: 64
+    z: -20.5
+  flooding-fix-1:
+    world: world
+    x: 15.5
+    y: 64
+    z: -30.5
+  flooding-fix-2:
+    world: world
+    x: 25.5
+    y: 64
+    z: 35.5
