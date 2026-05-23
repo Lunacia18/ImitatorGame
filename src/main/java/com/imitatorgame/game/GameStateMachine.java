@@ -13,10 +13,11 @@ public class GameStateMachine {
         validTransitions.put(GamePhase.LOBBY, Set.of(GamePhase.STARTING));
         validTransitions.put(GamePhase.STARTING, Set.of(GamePhase.ROLE_REVEAL, GamePhase.LOBBY));
         validTransitions.put(GamePhase.ROLE_REVEAL, Set.of(GamePhase.FREE_ACTION));
-        validTransitions.put(GamePhase.FREE_ACTION, Set.of(GamePhase.MEETING_DISCUSSION, GamePhase.GAME_OVER));
+        validTransitions.put(GamePhase.FREE_ACTION, Set.of(GamePhase.MEETING_DISCUSSION, GamePhase.RUSH_HOUR, GamePhase.GAME_OVER));
         validTransitions.put(GamePhase.MEETING_DISCUSSION, Set.of(GamePhase.MEETING_VOTING));
         validTransitions.put(GamePhase.MEETING_VOTING, Set.of(GamePhase.MEETING_RESULT));
         validTransitions.put(GamePhase.MEETING_RESULT, Set.of(GamePhase.FREE_ACTION, GamePhase.GAME_OVER));
+        validTransitions.put(GamePhase.RUSH_HOUR, Set.of(GamePhase.GAME_OVER));
         validTransitions.put(GamePhase.GAME_OVER, Set.of(GamePhase.LOBBY));
     }
 

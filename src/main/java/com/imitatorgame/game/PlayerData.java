@@ -41,6 +41,10 @@ public class PlayerData {
 
     // Imitator knife
     private boolean hasKnife;
+    private int eatUseCount;
+    private UUID recordedTarget;
+    private int taskClickCount;
+    private Location currentTaskLodestone;
 
     public PlayerData(UUID uuid) {
         this.uuid = uuid;
@@ -152,6 +156,28 @@ public class PlayerData {
     public boolean hasKnife() { return hasKnife; }
     public void setHasKnife(boolean v) { hasKnife = v; }
 
+    public int getEatUseCount() { return eatUseCount; }
+    public void incrementEatUseCount() { eatUseCount++; }
+    public void setEatUseCount(int v) { eatUseCount = v; }
+    public long getDeliverymanCooldown() {
+        return switch (eatUseCount) {
+            case 0 -> 32_000;
+            case 1 -> 28_000;
+            case 2 -> 24_000;
+            default -> 20_000;
+        };
+    }
+
+    public UUID getRecordedTarget() { return recordedTarget; }
+    public void setRecordedTarget(UUID v) { recordedTarget = v; }
+
+    public int getTaskClickCount() { return taskClickCount; }
+    public void setTaskClickCount(int v) { taskClickCount = v; }
+    public void incrementTaskClickCount() { taskClickCount++; }
+
+    public Location getCurrentTaskLodestone() { return currentTaskLodestone; }
+    public void setCurrentTaskLodestone(Location v) { currentTaskLodestone = v; }
+
     // Reset
     public void resetForNewRound() {
         hasVoted = false;
@@ -183,5 +209,9 @@ public class PlayerData {
         bombExpireTime = 0;
         bombVisibleToAll = false;
         hasKnife = false;
+        eatUseCount = 0;
+        recordedTarget = null;
+        taskClickCount = 0;
+        currentTaskLodestone = null;
     }
 }

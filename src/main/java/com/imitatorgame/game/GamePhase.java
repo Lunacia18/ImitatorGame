@@ -5,6 +5,7 @@ public enum GamePhase {
     STARTING,
     ROLE_REVEAL,
     FREE_ACTION,
+    RUSH_HOUR,          // deliveryman endgame
     MEETING_DISCUSSION,
     MEETING_VOTING,
     MEETING_RESULT,

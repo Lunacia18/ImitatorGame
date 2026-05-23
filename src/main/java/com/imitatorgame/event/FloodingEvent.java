@@ -29,12 +29,12 @@ public class FloodingEvent implements TimedGameEvent {
 
     @Override
     public void onActivate(GameSession session) {
-        session.broadcastMessage(Constants.PREFIX + "§1§l水淹警报！管道破裂！");
+        session.broadcastMessage(Constants.PREFIX + "§1§l水阀警报！管道破裂！");
         session.broadcastMessage(Constants.PREFIX + "§7前往东沐浴间和盥洗室关闭阀门！");
         session.broadcastMessage(Constants.PREFIX + "§c如果在 " + (durationTicks / 20) + " 秒内未修复，模仿者获胜！");
 
         bossBar = BossBar.bossBar(
-                Component.text("水淹倒计时 - 关闭阀门！").color(TextColor.color(0x5555FF)),
+                Component.text("水阀倒计时 - 关闭阀门！").color(TextColor.color(0x5555FF)),
                 1.0f,
                 BossBar.Color.BLUE,
                 BossBar.Overlay.PROGRESS
@@ -55,14 +55,14 @@ public class FloodingEvent implements TimedGameEvent {
         float progress = Math.max(0, (float) remainingTicks / durationTicks);
         if (bossBar != null) {
             bossBar.progress(progress);
-            bossBar.name(Component.text("水淹倒计时: " + (remainingTicks / 20) + " 秒 - 关闭阀门！")
+            bossBar.name(Component.text("水阀倒计时: " + (remainingTicks / 20) + " 秒 - 关闭阀门！")
                     .color(remainingTicks < 200 ? TextColor.color(0xFF5555) : TextColor.color(0x5555FF)));
         }
 
         if (remainingTicks <= 0 && !resolved) {
-            session.broadcastMessage(Constants.PREFIX + "§4§l水淹时间到！模仿者获胜！");
-            WinConditionChecker checker = new WinConditionChecker(session);
-            checker.checkFloodingImitatorWin();
+            session.broadcastMessage(Constants.PREFIX + "§4§l水阀时间到！模仿者获胜！");
+            session.broadcastToAll(Constants.PREFIX + "§c水阀事件到期！模仿者获胜！");
+            session.getPlugin().getGameManager().stopGame();
         }
     }
 
@@ -108,8 +108,8 @@ public class FloodingEvent implements TimedGameEvent {
 
         if (valve1Fixed && valve2Fixed) {
             resolved = true;
-            session.broadcastMessage(Constants.PREFIX + "§a所有阀门已关闭！水淹危机解除！");
-            session.broadcastMessage(Constants.PREFIX + "§a模仿者未能通过水淹获胜。");
+            session.broadcastMessage(Constants.PREFIX + "§a所有阀门已关闭！水阀危机解除！");
+            session.broadcastMessage(Constants.PREFIX + "§a模仿者未能通过水阀获胜。");
             onDeactivate(session);
         }
         return true;

@@ -21,7 +21,7 @@ public enum Role {
     SPICE_MASTER("香料师", "右键标记追踪60秒", Faction.DETECTIVE, Material.BLAZE_POWDER, 24_000, -1, false, false),
 
     MASTER_THIEF("神偷", "隐身+加速 | 信标=停电 | 水桶=水淹", Faction.IMITATOR, Material.POTION, 24_000, -1, true, true),
-    CHANGELING("千面人", "伪装外观 | 信标=停电 | 水桶=水淹", Faction.IMITATOR, Material.PLAYER_HEAD, 24_000, -1, true, true),
+    CHANGELING("千面人", "右键记录→再右键变装30s | 信标=停电 | 水桶=水淹", Faction.IMITATOR, Material.PLAYER_HEAD, 24_000, -1, true, true),
     CONSPIRATOR("阴谋家", "会议猜身份 | 信标=停电 | 水桶=水淹", Faction.IMITATOR, Material.WRITABLE_BOOK, 24_000, -1, true, true),
     PYROTECHNICIAN("烟火师", "造炸弹(10s CD)→塞给别人→倒计时→煤炭块 | 信标=停电 | 水桶=水淹",
             Faction.IMITATOR, Material.TNT, 24_000, -1, true, false), // no knife
