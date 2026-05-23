@@ -97,25 +97,25 @@ public class MeetingManager {
     }
 
     private void teleportToMeetingRoom() {
-        Location meetingLoc = session.getPlugin().getConfigManager().getMapConfig().getMeetingRoom();
-        if (meetingLoc == null) return;
+        var gmm = session.getGameMapManager();
+        if (gmm == null) return;
 
+        List<Location> ring = gmm.getMeetingRingPositions(session.getAliveCount());
+        int i = 0;
         for (UUID uuid : session.getAlivePlayers()) {
             Player p = Bukkit.getPlayer(uuid);
-            if (p != null) {
-                session.getPlayerData(uuid).setPreMeetingPosition(p.getLocation());
-                p.teleport(meetingLoc);
-                p.setGameMode(GameMode.ADVENTURE);
-                p.setWalkSpeed(0);
-            }
+            if (p == null) continue;
+            session.getPlayerData(uuid).setPreMeetingPosition(p.getLocation());
+            p.teleport(i < ring.size() ? ring.get(i) : gmm.getMeetingRoomCenter());
+            p.setGameMode(GameMode.ADVENTURE);
+            p.setWalkSpeed(0);
+            i++;
         }
-        // Also teleport dead players (spectators) to watch
+        // Dead players spectate from above
+        Location center = gmm.getMeetingRoomCenter();
         for (UUID uuid : session.getDeadPlayers()) {
             Player p = Bukkit.getPlayer(uuid);
-            if (p != null && p.isOnline()) {
-                Location watchLoc = meetingLoc.clone().add(0, 3, 0);
-                p.teleport(watchLoc);
-            }
+            if (p != null && p.isOnline()) p.teleport(center.clone().add(0, 3, 0));
         }
     }
 
