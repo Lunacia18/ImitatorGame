@@ -105,7 +105,6 @@ public class MeetingManager {
         for (UUID uuid : session.getAlivePlayers()) {
             Player p = Bukkit.getPlayer(uuid);
             if (p == null) continue;
-            session.getPlayerData(uuid).setPreMeetingPosition(p.getLocation());
             p.teleport(i < ring.size() ? ring.get(i) : gmm.getMeetingRoomCenter());
             p.setGameMode(GameMode.ADVENTURE);
             p.setWalkSpeed(0);
