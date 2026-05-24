@@ -64,15 +64,11 @@ public class EntityDamageListener implements Listener {
                 PlayerData vpd = session.getPlayerData(victim.getUniqueId());
                 if (vpd != null && vpd.getFaction() == com.imitatorgame.role.Faction.IMITATOR) {
                     session.handleDeath(victim.getUniqueId());
-                    attacker.sendMessage(Constants.PREFIX + "§a一刀击杀了模仿者！");
                 } else {
                     session.handleDeath(attacker.getUniqueId());
-                    attacker.sendMessage(Constants.PREFIX + "§c对方无辜！治安官自我牺牲...");
                 }
             } else {
                 session.handleDeath(victim.getUniqueId());
-                attacker.sendMessage(Constants.PREFIX + "§c一刀击杀了 " + victim.getName());
-                victim.sendMessage(Constants.PREFIX + "§4被一刀毙命！");
             }
             return;
         }

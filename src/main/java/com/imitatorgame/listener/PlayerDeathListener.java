@@ -52,7 +52,6 @@ public class PlayerDeathListener implements Listener {
 
         // Sentry triggers meeting
         if (pd != null && pd.getRole() == Role.SENTRY) {
-            session.broadcastMessage(Constants.PREFIX + "§c哨兵被击杀！自动召开紧急会议！");
             session.callMeeting(null, victim.getUniqueId());
         }
     }

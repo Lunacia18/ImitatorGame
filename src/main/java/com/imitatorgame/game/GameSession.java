@@ -175,7 +175,7 @@ public class GameSession {
                     if (!hasBombItem) { pd.setHasBomb(false); continue; }
                     pd.setHasBomb(true); // sync flag
                     long rem = pd.getBombExpireTime() - System.currentTimeMillis();
-                    if (rem <= 0) { gameMapManager.placeCoalBlock(p.getLocation()); handleDeath(u); p.sendMessage(Constants.PREFIX + "§4§l炸弹爆炸！"); pd.setHasBomb(false); pd.setBombExpireTime(0); pd.setBombVisibleToAll(false); }
+                    if (rem <= 0) { gameMapManager.placeCoalBlock(p.getLocation()); handleDeath(u); pd.setHasBomb(false); pd.setBombExpireTime(0); pd.setBombVisibleToAll(false); }
                     else if (rem <= 11_000 && !pd.isBombVisibleToAll()) { pd.setBombVisibleToAll(true); broadcastMessage(Constants.PREFIX + "§c" + p.getName() + " 身上冒着烟花..."); }
                 }
             }
@@ -187,6 +187,8 @@ public class GameSession {
         if (stateMachine.getCurrentPhase() == GamePhase.RUSH_HOUR) { if (reporter != null) reporter.sendMessage(Constants.PREFIX + "§c急速时刻无法开会！"); return; }
         if (!stateMachine.transitionTo(GamePhase.MEETING_DISCUSSION)) return;
         cancelTimer();
+        // Auto-end active events
+        if (eventManager != null) eventManager.stopAll();
         // Pop swallowed
         for (UUID uuid : new ArrayList<>(alivePlayers)) {
             PlayerData pd = playerDataMap.get(uuid);
@@ -287,7 +289,7 @@ public class GameSession {
     public void triggerFlooding() { if (eventManager == null || stateMachine.getCurrentPhase() != GamePhase.FREE_ACTION) return; if (eventManager.hasActiveEvent(PowerOutageEvent.class)) { broadcastMessage(Constants.PREFIX + "§c停电事件进行中，不能同时触发水阀"); return; } if (eventManager.hasActiveEvent(FloodingEvent.class)) return; eventManager.addEvent(new FloodingEvent(plugin.getConfigManager().getGameConfig().floodingSeconds())); }
 
     public void handleDeath(UUID victimUuid) { alivePlayers.remove(victimUuid); deadPlayers.add(victimUuid); PlayerData pd = playerDataMap.get(victimUuid); if (pd != null) { pd.setAlive(false); pd.setHasBomb(false); pd.setBombExpireTime(0); if (pd.getSwallowedTarget() != null) { UUID sw = pd.getSwallowedTarget(); Player sp = Bukkit.getPlayer(sw); if (sp != null && alivePlayers.contains(sw)) { sp.setInvisible(false); sp.setSpectatorTarget(null); broadcastMessage(Constants.PREFIX + "§e" + sp.getName() + " 掉出！"); } pd.setSwallowedTarget(null); } } exitDoorHideout(victimUuid); Player victim = Bukkit.getPlayer(victimUuid); if (victim != null) { if (deathManager != null) deathManager.spawnCorpse(victim, victim.getLocation()); victim.setGameMode(GameMode.SPECTATOR); victim.setInvisible(true); victim.setCollidable(false); victim.setSilent(true); Role.giveDeathBeacon(victim); } }
-    public void eliminateByVote(UUID u) { handleDeath(u); Player p = Bukkit.getPlayer(u); broadcastMessage(Constants.PREFIX + "§c" + (p != null ? p.getName() : "玩家") + " 被淘汰！"); }
+    public void eliminateByVote(UUID u) { handleDeath(u); }
     public void cancelTimer() { if (currentTimer != null && !currentTimer.isCancelled()) { currentTimer.cancel(); currentTimer = null; } }
 
     public void addLobbyPlayer(UUID uuid) { if (!isActive()) { lobbyPlayers.add(uuid); playerDataMap.putIfAbsent(uuid, new PlayerData(uuid)); } }

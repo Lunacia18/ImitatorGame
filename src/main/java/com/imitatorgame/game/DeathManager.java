@@ -38,7 +38,7 @@ public class DeathManager {
         corpses.put(key, new CorpseData(key, victim.getUniqueId(),
                 System.currentTimeMillis(), label));
 
-        session.broadcastMessage(Constants.PREFIX + "§c" + victim.getName() + " 倒下了...");
+        // Silent death — no chat broadcast
     }
 
     public UUID getVictimFromBlock(Block block) {

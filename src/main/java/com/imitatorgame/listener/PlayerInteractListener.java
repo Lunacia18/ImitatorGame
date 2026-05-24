@@ -195,7 +195,7 @@ public class PlayerInteractListener implements Listener {
         target.getInventory().addItem(Role.createFixedItem(Material.TNT, "§4§l定时炸弹",
                 List.of("§720秒倒计时", "§7<11s他人可见烟花", "§7右键他人可传递"), "pyro_bomb"));
         player.sendMessage(Constants.PREFIX + "§c炸弹传给 " + target.getName() + "！");
-        target.sendMessage(Constants.PREFIX + "§4你被塞了炸弹！20秒后爆炸！右键可传给他人");
+        // Silent bomb pass
     }
 
     private void handleRoleAbility(Player player, Player target, GameSession session) {
