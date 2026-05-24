@@ -29,7 +29,7 @@ public class PlayerConnectionListener implements Listener {
 
         var session = plugin.getGameManager().getCurrentSession();
         if (session == null) {
-            player.sendMessage(Constants.PREFIX + "§7服务器正在等待管理员开始游戏。输入 §e/ig start §7开始！");
+            player.sendMessage(Constants.PREFIX + "§7等待开始。输入 §e/ig start §7或等待自动开始");
             return;
         }
 
@@ -38,11 +38,12 @@ public class PlayerConnectionListener implements Listener {
             session.addLobbyPlayer(player.getUniqueId());
             int lobbySize = session.getLobbySize();
             int min = plugin.getConfigManager().getGameConfig().minPlayers();
-            player.sendMessage(Constants.PREFIX + "§a你已自动加入游戏大厅！(§6" + lobbySize + "§a/" + min + ")");
+            player.sendMessage(Constants.PREFIX + "§a已自动加入大厅！(§6" + lobbySize + "§a/" + min + ")");
             player.sendMessage(Constants.PREFIX + "§e输入 §6/ready §e准备！满人自动开始");
         } else if (session.isActive()) {
-            player.sendMessage(Constants.PREFIX + "§c游戏正在进行中，无法加入。请等待下一局。");
-            if (lobby != null) lobby.teleportToLobby(player);
+            // Game in progress — let them spectate
+            player.sendMessage(Constants.PREFIX + "§7游戏进行中，你将以旁观者身份进入");
+            player.setGameMode(org.bukkit.GameMode.SPECTATOR);
         }
     }
 
@@ -56,9 +57,15 @@ public class PlayerConnectionListener implements Listener {
             session.removeLobbyPlayer(player.getUniqueId());
         }
 
-        if (session.isActive()) {
+        if (session.isActive() && session.isAlive(player.getUniqueId())) {
             session.handleDeath(player.getUniqueId());
             session.broadcastMessage(Constants.PREFIX + "§7" + player.getName() + " 断开了连接");
+
+            // If no alive players remain, end the game so lobby reopens
+            if (session.getAliveCount() == 0) {
+                plugin.getLogger().info("所有存活玩家断开，自动结束游戏");
+                plugin.getGameManager().stopGame();
+            }
         }
     }
 }

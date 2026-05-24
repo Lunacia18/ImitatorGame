@@ -84,31 +84,37 @@ public class GameMapManager {
     }
 
     private void buildMeetingRoom(int cx, int y, int cz) {
-        // 10x10x5 meeting room
         int mx = cx, mz = cz, mr = 5;
         for (int x = -mr; x <= mr; x++) {
             for (int z = -mr; z <= mr; z++) {
-                // Floor
                 world.getBlockAt(mx + x, y, mz + z).setType(Material.POLISHED_BLACKSTONE);
-                // Walls (5 high)
                 if (Math.abs(x) == mr || Math.abs(z) == mr) {
                     for (int dy = 1; dy <= 5; dy++)
                         world.getBlockAt(mx + x, y + dy, mz + z).setType(Material.QUARTZ_BLOCK);
                 }
-                // Ceiling
                 world.getBlockAt(mx + x, y + 5, mz + z).setType(Material.GLASS);
-                // Clear interior
                 for (int dy = 1; dy < 5; dy++) {
                     Block b = world.getBlockAt(mx + x, y + dy, mz + z);
                     if (abs(x) != mr && abs(z) != mr) b.setType(Material.AIR);
                 }
             }
         }
-        // Entrance (gap in wall on south side)
+        // Entrance
         for (int dy = 1; dy <= 2; dy++) {
             world.getBlockAt(mx, y + dy, mz + mr).setType(Material.AIR);
             world.getBlockAt(mx + 1, y + dy, mz + mr).setType(Material.AIR);
         }
+        // Oak round table: 3x3 oak planks + center glowstone
+        for (int tx = -1; tx <= 1; tx++)
+            for (int tz = -1; tz <= 1; tz++)
+                world.getBlockAt(mx + tx, y + 1, mz + tz).setType(Material.OAK_PLANKS);
+        // Fence posts around table edge
+        world.getBlockAt(mx - 1, y + 2, mz - 1).setType(Material.OAK_FENCE);
+        world.getBlockAt(mx + 1, y + 2, mz - 1).setType(Material.OAK_FENCE);
+        world.getBlockAt(mx - 1, y + 2, mz + 1).setType(Material.OAK_FENCE);
+        world.getBlockAt(mx + 1, y + 2, mz + 1).setType(Material.OAK_FENCE);
+        // Glowstone center
+        world.getBlockAt(mx, y + 1, mz).setType(Material.GLOWSTONE);
         meetingRoomCenter = new Location(world, mx + 0.5, y + 1, mz + 0.5);
     }
 
