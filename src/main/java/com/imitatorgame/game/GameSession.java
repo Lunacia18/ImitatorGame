@@ -163,10 +163,20 @@ public class GameSession {
         bombTickTask = new BukkitRunnable() {
             public void run() {
                 for (UUID u : alivePlayers) {
-                    PlayerData pd = playerDataMap.get(u); if (pd == null || !pd.hasBomb()) continue;
+                    PlayerData pd = playerDataMap.get(u); if (pd == null) continue;
+                    Player p = Bukkit.getPlayer(u); if (p == null) continue;
+                    // Check for bomb item in inventory
+                    boolean hasBombItem = false;
+                    for (ItemStack item : p.getInventory().getContents()) {
+                        if (item != null && "pyro_bomb".equals(com.imitatorgame.role.Role.getItemTag(item))) {
+                            hasBombItem = true; break;
+                        }
+                    }
+                    if (!hasBombItem) { pd.setHasBomb(false); continue; }
+                    pd.setHasBomb(true); // sync flag
                     long rem = pd.getBombExpireTime() - System.currentTimeMillis();
-                    if (rem <= 0) { Player p = Bukkit.getPlayer(u); if (p != null) { gameMapManager.placeCoalBlock(p.getLocation()); handleDeath(u); p.sendMessage(Constants.PREFIX + "§4§l炸弹爆炸！"); } pd.setHasBomb(false); pd.setBombExpireTime(0); pd.setBombVisibleToAll(false); }
-                    else if (!pd.isBombVisibleToAll() && rem < 11_000) { pd.setBombVisibleToAll(true); Player p = Bukkit.getPlayer(u); if (p != null) broadcastMessage(Constants.PREFIX + "§c" + p.getName() + " 身上冒着烟花..."); }
+                    if (rem <= 0) { gameMapManager.placeCoalBlock(p.getLocation()); handleDeath(u); p.sendMessage(Constants.PREFIX + "§4§l炸弹爆炸！"); pd.setHasBomb(false); pd.setBombExpireTime(0); pd.setBombVisibleToAll(false); }
+                    else if (rem <= 11_000 && !pd.isBombVisibleToAll()) { pd.setBombVisibleToAll(true); broadcastMessage(Constants.PREFIX + "§c" + p.getName() + " 身上冒着烟花..."); }
                 }
             }
         }.runTaskTimer(plugin, 0, 5);

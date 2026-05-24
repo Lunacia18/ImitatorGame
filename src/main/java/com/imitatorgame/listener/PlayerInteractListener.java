@@ -99,7 +99,8 @@ public class PlayerInteractListener implements Listener {
         if (pd == null) return;
 
         if (pd.getRole() == Role.DELIVERYMAN) { handleDeliverymanEat(player, target, pd, session); return; }
-        if (pd.getRole() == Role.PYROTECHNICIAN && pd.hasBomb() && "pyro_bomb".equals(Role.getItemTag(player.getInventory().getItemInMainHand()))) {
+        // Anyone holding the bomb can pass it
+        if ("pyro_bomb".equals(Role.getItemTag(player.getInventory().getItemInMainHand()))) {
             handleBombPass(player, target, pd, session); return;
         }
         handleRoleAbility(player, target, session);
@@ -183,13 +184,18 @@ public class PlayerInteractListener implements Listener {
     }
 
     private void handleBombPass(Player player, Player target, PlayerData pd, GameSession session) {
+        // Remove bomb from passer's inventory
+        for (ItemStack i : player.getInventory().getContents())
+            if (i != null && "pyro_bomb".equals(Role.getItemTag(i))) player.getInventory().remove(i);
+        // Clear passer flags
         pd.setHasBomb(false); pd.setBombExpireTime(0); pd.setBombVisibleToAll(false);
-        for (ItemStack i : player.getInventory().getContents()) if (i != null && "pyro_bomb".equals(Role.getItemTag(i))) player.getInventory().remove(i);
+        // Give to target with fresh 20s timer
         PlayerData td = session.getPlayerData(target.getUniqueId());
         td.setHasBomb(true); td.setBombExpireTime(System.currentTimeMillis() + 20_000); td.setBombVisibleToAll(false);
-        target.getInventory().addItem(Role.createFixedItem(Material.TNT, "§4§l定时炸弹", List.of("§720秒倒计时", "§7右键他人传递"), "pyro_bomb"));
-        player.sendMessage(Constants.PREFIX + "§c炸弹传给 " + target.getName());
-        target.sendMessage(Constants.PREFIX + "§4被塞了炸弹！20秒后爆炸！");
+        target.getInventory().addItem(Role.createFixedItem(Material.TNT, "§4§l定时炸弹",
+                List.of("§720秒倒计时", "§7<11s他人可见烟花", "§7右键他人可传递"), "pyro_bomb"));
+        player.sendMessage(Constants.PREFIX + "§c炸弹传给 " + target.getName() + "！");
+        target.sendMessage(Constants.PREFIX + "§4你被塞了炸弹！20秒后爆炸！右键可传给他人");
     }
 
     private void handleRoleAbility(Player player, Player target, GameSession session) {
