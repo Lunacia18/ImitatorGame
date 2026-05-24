@@ -33,11 +33,7 @@ public class GameMapManager {
                 floor.setType(floorMaterial);
                 // Glowstone embedded every 5 blocks at floor level
                 if (x % 5 == 0 && z % 5 == 0) floor.setType(Material.GLOWSTONE);
-                // Barrier walls 8 high
-                if (Math.abs(x) == hs || Math.abs(z) == hs) {
-                    for (int dy = 1; dy <= 8; dy++)
-                        world.getBlockAt(cx + x, y + dy, cz + z).setType(Material.BARRIER);
-                }
+                // Edge: no barrier, just clear area (fall protection via block-break prevention)
                 // Clear above
                 for (int dy = 1; dy < 12; dy++) {
                     Block above = world.getBlockAt(cx + x, y + dy, cz + z);

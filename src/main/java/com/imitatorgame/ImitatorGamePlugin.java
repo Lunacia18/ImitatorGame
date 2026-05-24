@@ -53,6 +53,7 @@ public class ImitatorGamePlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerRespawnListener(this), this);
         getServer().getPluginManager().registerEvents(new VoteGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new EntityDamageListener(this), this);
+        getServer().getPluginManager().registerEvents(new BlockProtectListener(this), this);
     }
 
     private void registerCommands() {
