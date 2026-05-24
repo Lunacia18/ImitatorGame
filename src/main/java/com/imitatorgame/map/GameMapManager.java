@@ -104,16 +104,10 @@ public class GameMapManager {
             world.getBlockAt(mx, y + dy, mz + mr).setType(Material.AIR);
             world.getBlockAt(mx + 1, y + dy, mz + mr).setType(Material.AIR);
         }
-        // Oak round table: 3x3 oak planks + center glowstone
+        // Oak table: 3x3 oak planks + center glowstone
         for (int tx = -1; tx <= 1; tx++)
             for (int tz = -1; tz <= 1; tz++)
                 world.getBlockAt(mx + tx, y + 1, mz + tz).setType(Material.OAK_PLANKS);
-        // Fence posts around table edge
-        world.getBlockAt(mx - 1, y + 2, mz - 1).setType(Material.OAK_FENCE);
-        world.getBlockAt(mx + 1, y + 2, mz - 1).setType(Material.OAK_FENCE);
-        world.getBlockAt(mx - 1, y + 2, mz + 1).setType(Material.OAK_FENCE);
-        world.getBlockAt(mx + 1, y + 2, mz + 1).setType(Material.OAK_FENCE);
-        // Glowstone center
         world.getBlockAt(mx, y + 1, mz).setType(Material.GLOWSTONE);
         meetingRoomCenter = new Location(world, mx + 0.5, y + 1, mz + 0.5);
     }
