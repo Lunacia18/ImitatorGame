@@ -76,7 +76,7 @@ public class GameSession {
         if (lobbyPlayers.size() < plugin.getConfigManager().getGameConfig().minPlayers()) {
             broadcastToAll(Constants.PREFIX + "§c玩家不足！当前 " + lobbyPlayers.size() + " 人"); return false;
         }
-        stateMachine.transitionTo(GamePhase.ROLE_REVEAL);
+        stateMachine.transitionTo(GamePhase.STARTING);
         revealRoles();
         return true;
     }
@@ -115,7 +115,27 @@ public class GameSession {
         if (center == null) center = new Location(gameWorld, 0, 64, 0);
         gameMapManager = new GameMapManager(gameWorld, center);
         gameMapManager.buildPlatform();
-        startFreeAction();
+
+        // 5-second countdown with titles
+        countdownSeconds = 5;
+        currentTimer = new BukkitRunnable() {
+            public void run() {
+                if (countdownSeconds <= 0) {
+                    this.cancel();
+                    startFreeAction();
+                    return;
+                }
+                String msg = countdownSeconds == 1 ? "§c" + countdownSeconds : "§e" + countdownSeconds;
+                Title title = Title.title(Component.text(msg),
+                        Component.text("§7游戏即将开始..."),
+                        Title.Times.times(Duration.ZERO, Duration.ofMillis(1200), Duration.ZERO));
+                for (UUID u : lobbyPlayers) {
+                    Player p = Bukkit.getPlayer(u);
+                    if (p != null) p.showTitle(title);
+                }
+                countdownSeconds--;
+            }
+        }.runTaskTimer(plugin, 0, 20);
     }
 
     private void startFreeAction() {

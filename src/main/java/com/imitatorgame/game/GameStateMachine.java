@@ -11,7 +11,7 @@ public class GameStateMachine {
 
     public GameStateMachine() {
         validTransitions.put(GamePhase.LOBBY, Set.of(GamePhase.STARTING));
-        validTransitions.put(GamePhase.STARTING, Set.of(GamePhase.ROLE_REVEAL, GamePhase.LOBBY));
+        validTransitions.put(GamePhase.STARTING, Set.of(GamePhase.ROLE_REVEAL, GamePhase.FREE_ACTION, GamePhase.LOBBY));
         validTransitions.put(GamePhase.ROLE_REVEAL, Set.of(GamePhase.FREE_ACTION));
         validTransitions.put(GamePhase.FREE_ACTION, Set.of(GamePhase.MEETING_DISCUSSION, GamePhase.RUSH_HOUR, GamePhase.GAME_OVER));
         validTransitions.put(GamePhase.MEETING_DISCUSSION, Set.of(GamePhase.MEETING_VOTING));
