@@ -38,6 +38,9 @@ public class GameMapManager {
     public void buildPlatform() {
         int cx = center.getBlockX(), cz = center.getBlockZ();
 
+        // 0. ═══ DESTROY old map completely before building new one ═══
+        clearEntireGameArea(cx, cz);
+
         // 1. Clear and lay the main floor
         buildMainFloor(cx, cz);
 
@@ -88,6 +91,35 @@ public class GameMapManager {
         world.setGameRule(GameRule.FALL_DAMAGE, false);
         world.setTime(6000);
         world.setClearWeatherDuration(Integer.MAX_VALUE);
+    }
+
+    // ─── Old Map Destruction ────────────────────────────────────────────────
+
+    /**
+     * Completely wipes the entire game area — platform, rooms, meeting room,
+     * hallways, walls, everything. Runs BEFORE any new building.
+     * Clear zone: ~75×75 blocks horizontally, y=64→78 vertically.
+     */
+    private void clearEntireGameArea(int cx, int cz) {
+        int clearRadius = halfSize + 25; // covers all rooms + meeting room
+        for (int x = -clearRadius; x <= clearRadius; x++) {
+            for (int z = -clearRadius; z <= clearRadius; z++) {
+                // Clear from floor level up to above the meeting room roof
+                for (int y = FLOOR_Y; y <= FLOOR_Y + 8; y++) {
+                    Block b = world.getBlockAt(cx + x, y, cz + z);
+                    if (b.getType() != Material.AIR && b.getType() != Material.BEDROCK) {
+                        b.setType(Material.AIR, false);
+                    }
+                }
+                // Also clear elevated structures higher up (meeting room glass ceiling)
+                for (int y = FLOOR_Y + 9; y <= FLOOR_Y + 14; y++) {
+                    Block b = world.getBlockAt(cx + x, y, cz + z);
+                    if (b.getType() != Material.AIR && b.getType() != Material.BEDROCK) {
+                        b.setType(Material.AIR, false);
+                    }
+                }
+            }
+        }
     }
 
     // ─── Main Floor ────────────────────────────────────────────────────────

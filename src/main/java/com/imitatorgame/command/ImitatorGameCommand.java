@@ -4,6 +4,7 @@ import com.imitatorgame.ImitatorGamePlugin;
 import com.imitatorgame.game.GamePhase;
 import com.imitatorgame.util.Constants;
 import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -42,6 +43,7 @@ public class ImitatorGameCommand implements CommandExecutor, TabCompleter {
             case "adddoor" -> handleAddDoor(sender);
             case "goto" -> handleGoto(sender);
             case "lobby" -> handleLobby(sender);
+            case "clearmap" -> handleClearMap(sender);
             default -> { sendHelp(sender); yield true; }
         };
     }
@@ -59,6 +61,7 @@ public class ImitatorGameCommand implements CommandExecutor, TabCompleter {
         sender.sendRichMessage("<yellow>/ig adddoor</yellow> <gray>- 添加秘密通道门</gray>");
         sender.sendRichMessage("<yellow>/ig goto</yellow> <gray>- [管理] 传送到游戏场景</gray>");
         sender.sendRichMessage("<yellow>/ig lobby</yellow> <gray>- [管理] 返回虚空大厅</gray>");
+        sender.sendRichMessage("<yellow>/ig clearmap</yellow> <gray>- [管理] 清除旧地图（开游戏前使用）</gray>");
     }
 
     private boolean handleJoin(CommandSender sender) {
@@ -300,6 +303,44 @@ public class ImitatorGameCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /** Admin-only: wipe the entire game area — destroys old map before rebuilding */
+    private boolean handleClearMap(CommandSender sender) {
+        if (!sender.hasPermission("imitatorgame.admin")) {
+            sender.sendMessage("§c你没有权限使用此命令");
+            return true;
+        }
+
+        String worldName = plugin.getConfigManager().getMapConfig().getWorldName();
+        World gameWorld = Bukkit.getWorld(worldName);
+        if (gameWorld == null) {
+            sender.sendMessage(Constants.PREFIX + "§c游戏世界 '" + worldName + "' 未加载");
+            return true;
+        }
+
+        Location center = gameWorld.getSpawnLocation();
+        int cx = center.getBlockX(), cz = center.getBlockZ();
+        int clearRadius = 50; // 25 (halfSize) + 25 (safe margin)
+
+        sender.sendMessage(Constants.PREFIX + "§e正在清除旧地图区域...");
+
+        int cleared = 0;
+        for (int x = -clearRadius; x <= clearRadius; x++) {
+            for (int z = -clearRadius; z <= clearRadius; z++) {
+                for (int y = 64; y <= 78; y++) {
+                    Block b = gameWorld.getBlockAt(cx + x, y, cz + z);
+                    if (b.getType() != Material.AIR && b.getType() != Material.BEDROCK) {
+                        b.setType(Material.AIR, false);
+                        cleared++;
+                    }
+                }
+            }
+        }
+
+        sender.sendMessage(Constants.PREFIX + "§a旧地图已清除！共移除 " + cleared + " 个方块");
+        sender.sendMessage(Constants.PREFIX + "§a现在可以使用 §6/ig start §a开始游戏，新地图将自动生成");
+        return true;
+    }
+
     private Map<String, Object> serializeLoc(org.bukkit.Location loc) {
         Map<String, Object> map = new java.util.LinkedHashMap<>();
         map.put("world", loc.getWorld().getName());
@@ -314,7 +355,7 @@ public class ImitatorGameCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("join", "leave", "start", "stop", "list", "reload", "setspawn", "addtask", "adddoor", "goto", "lobby");
+            return List.of("join", "leave", "start", "stop", "list", "reload", "setspawn", "addtask", "adddoor", "goto", "lobby", "clearmap");
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("setspawn")) {
             return List.of("lobby", "meeting", "game");
