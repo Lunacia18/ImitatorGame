@@ -9,7 +9,7 @@ commands:
   imitatorgame:
     description: Main ImitatorGame command
     aliases: [ig]
-    usage: /ig <join|leave|start|stop|list|reload|setspawn|addtask|adddoor>
+    usage: /ig <join|leave|start|stop|list|reload|setspawn|addtask|adddoor|goto|lobby>
   vote:
     description: Vote during meeting phase
     usage: /vote <player|skip>

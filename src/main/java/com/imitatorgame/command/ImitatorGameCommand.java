@@ -3,6 +3,7 @@ package com.imitatorgame.command;
 import com.imitatorgame.ImitatorGamePlugin;
 import com.imitatorgame.game.GamePhase;
 import com.imitatorgame.util.Constants;
+import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -39,6 +40,8 @@ public class ImitatorGameCommand implements CommandExecutor, TabCompleter {
             case "setspawn" -> handleSetSpawn(sender, args);
             case "addtask" -> handleAddTask(sender, args);
             case "adddoor" -> handleAddDoor(sender);
+            case "goto" -> handleGoto(sender);
+            case "lobby" -> handleLobby(sender);
             default -> { sendHelp(sender); yield true; }
         };
     }
@@ -54,6 +57,8 @@ public class ImitatorGameCommand implements CommandExecutor, TabCompleter {
         sender.sendRichMessage("<yellow>/ig setspawn <lobby|meeting|game></yellow> <gray>- 设置生成点</gray>");
         sender.sendRichMessage("<yellow>/ig addtask <type> <room></yellow> <gray>- 添加任务位置</gray>");
         sender.sendRichMessage("<yellow>/ig adddoor</yellow> <gray>- 添加秘密通道门</gray>");
+        sender.sendRichMessage("<yellow>/ig goto</yellow> <gray>- [管理] 传送到游戏场景</gray>");
+        sender.sendRichMessage("<yellow>/ig lobby</yellow> <gray>- [管理] 返回虚空大厅</gray>");
     }
 
     private boolean handleJoin(CommandSender sender) {
@@ -235,6 +240,66 @@ public class ImitatorGameCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /** Admin-only: teleport to the game scene (game world spawn area) */
+    private boolean handleGoto(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§c此命令只能由玩家执行");
+            return true;
+        }
+        if (!sender.hasPermission("imitatorgame.admin")) {
+            sender.sendMessage("§c你没有权限使用此命令");
+            return true;
+        }
+
+        // If a game is active, teleport to the game platform center
+        var session = plugin.getGameManager().getCurrentSession();
+        if (session != null && session.isActive()) {
+            var mapManager = session.getGameMapManager();
+            if (mapManager != null) {
+                Location gameLoc = mapManager.getCenterSpawn();
+                player.teleport(gameLoc);
+                player.setGameMode(GameMode.SPECTATOR);
+                player.sendMessage(Constants.PREFIX + "§a已传送到游戏场景（旁观模式）");
+                return true;
+            }
+        }
+
+        // Fallback: teleport to the game world spawn
+        String worldName = plugin.getConfigManager().getMapConfig().getWorldName();
+        World gameWorld = Bukkit.getWorld(worldName);
+        if (gameWorld != null) {
+            Location spawn = gameWorld.getSpawnLocation();
+            player.teleport(spawn);
+            player.setGameMode(GameMode.SPECTATOR);
+            player.sendMessage(Constants.PREFIX + "§a已传送到游戏世界 (" + worldName + ")，旁观模式");
+        } else {
+            player.sendMessage(Constants.PREFIX + "§c游戏世界 '" + worldName + "' 未加载");
+        }
+        return true;
+    }
+
+    /** Admin-only: teleport back to the void lobby */
+    private boolean handleLobby(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§c此命令只能由玩家执行");
+            return true;
+        }
+        if (!sender.hasPermission("imitatorgame.admin")) {
+            sender.sendMessage("§c你没有权限使用此命令");
+            return true;
+        }
+
+        var lobbyManager = plugin.getLobbyManager();
+        if (lobbyManager == null || lobbyManager.getLobbyWorld() == null) {
+            player.sendMessage(Constants.PREFIX + "§c大厅世界尚未初始化");
+            return true;
+        }
+
+        lobbyManager.teleportToLobby(player);
+        player.sendMessage(Constants.PREFIX + "§a已返回虚空大厅");
+        return true;
+    }
+
     private Map<String, Object> serializeLoc(org.bukkit.Location loc) {
         Map<String, Object> map = new java.util.LinkedHashMap<>();
         map.put("world", loc.getWorld().getName());
@@ -249,7 +314,7 @@ public class ImitatorGameCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("join", "leave", "start", "stop", "list", "reload", "setspawn", "addtask", "adddoor");
+            return List.of("join", "leave", "start", "stop", "list", "reload", "setspawn", "addtask", "adddoor", "goto", "lobby");
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("setspawn")) {
             return List.of("lobby", "meeting", "game");
